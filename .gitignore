@@ -1,48 +1,37 @@
 # ========================
-# UNITY IGNORES
+# UNITY IGNORE
 # ========================
-/[Uu]nity_Project/[Ll]ibrary/
-/[Uu]nity_Project/[Tt]emp/
-/[Uu]nity_Project/[Oo]bj/
-/[Uu]nity_Project/[Bb]uild/
-/[Uu]nity_Project/[Bb]uilds/
-/[Uu]nity_Project/[Ll]ogs/
-/[Uu]nity_Project/[Uu]ser[Ss]ettings/
+Unity_Project/[Ll]ibrary/
+Unity_Project/[Tt]emp/
+Unity_Project/[Oo]bj/
+Unity_Project/[Bb]uild/
+Unity_Project/[Bb]uilds/
+Unity_Project/[Ll]ogs/
+Unity_Project/[Uu]ser[Ss]ettings/
 
-# Unity generated files
-/[Uu]nity_Project/*.csproj
-/[Uu]nity_Project/*.unityproj
-/[Uu]nity_Project/*.sln
-/[Uu]nity_Project/*.suo
-/[Uu]nity_Project/*.tmp
-/[Uu]nity_Project/*.user
-/[Uu]nity_Project/*.userprefs
-/[Uu]nity_Project/*.pidb
-/[Uu]nity_Project/*.booproj
-/[Uu]nity_Project/*.svd
-/[Uu]nity_Project/*.pdb
-/[Uu]nity_Project/*.mdb
-/[Uu]nity_Project/*.opentype
+Unity_Project/*.csproj
+Unity_Project/*.sln
+Unity_Project/*.unityproj
+Unity_Project/*.tmp
+Unity_Project/*.user
+Unity_Project/*.userprefs
 
 # ========================
-# UNREAL IGNORES
+# UNREAL IGNORE
 # ========================
-/[Uu]nreal_Project/Binaries/
-/[Uu]nreal_Project/DerivedDataCache/
-/[Uu]nreal_Project/Intermediate/
-/[Uu]nreal_Project/Saved/
-/[Uu]nreal_Project/Build/
+Unreal_Project/Binaries/
+Unreal_Project/DerivedDataCache/
+Unreal_Project/Intermediate/
+Unreal_Project/Saved/
+Unreal_Project/.vs/
 
-# Unreal generated files
-/[Uu]nreal_Project/*.sln
-/[Uu]nreal_Project/*.suo
-/[Uu]nreal_Project/*.opensdf
-/[Uu]nreal_Project/*.sdf
-/[Uu]nreal_Project/*.xcodeproj
-/[Uu]nreal_Project/*.xcworkspace
+Unreal_Project/*.sln
+Unreal_Project/*.vcxproj*
+Unreal_Project/*.opensdf
+Unreal_Project/*.sdf
 
 # ========================
-# OS JUNK
+# OS / JUNK
 # ========================
 .DS_Store
 Thumbs.db
