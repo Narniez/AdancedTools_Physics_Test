@@ -3,6 +3,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Components/PrimitiveComponent.h"
+#include "HAL/PlatformFilemanager.h"
 
 APhysicsStressTest::APhysicsStressTest()
 {
@@ -12,10 +13,18 @@ APhysicsStressTest::APhysicsStressTest()
 
 void APhysicsStressTest::BeginPlay()
 {
-    // Force VSync OFF to measure raw performance
+    // Force VSync OFF
     GEngine->Exec(GetWorld(), TEXT("r.VSync 0"));
     Super::BeginPlay();
-    
+
+    FString FilePath = FPaths::ProjectSavedDir() + "Logs/" + FileName;
+
+    // Only write the Header if the file DOES NOT exist yet
+    if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*FilePath))
+    {
+        FString Header = "Time,ObjectCount,FPS,FrameTime(ms),TotalMemory(MB),ActiveObjects\n";
+        FFileHelper::SaveStringToFile(Header, *FilePath);
+    }
 }
 
 void APhysicsStressTest::StartTest(int32 NewCount)
@@ -28,17 +37,11 @@ void APhysicsStressTest::StartTest(int32 NewCount)
     }
     SpawnedActors.Empty();
 
-    CSVContent = "Time,ObjectCount,FPS,FrameTime(ms),TotalMemory(MB),ActiveObjects\n";
-
-    if (!ObjectToSpawn)
-    {
-        UE_LOG(LogTemp, Error, TEXT("STOP! ObjectToSpawn is empty."));
-        return;
-    }
+    CSVContent.Empty();
 
     CurrentSpawnCount = 0;
-    bIsSpawning = true;
-    bIsRecording = false;
+    isSpawning = true;
+    isRecording = false;
     Timer = 0.0f;
 
     UE_LOG(LogTemp, Warning, TEXT("Starting Test with %d Objects..."), TargetObjectCount);
@@ -48,17 +51,16 @@ void APhysicsStressTest::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    //SPAWNING
-    if (bIsSpawning)
+    // SPAWNING
+    if (isSpawning)
     {
         int32 RowSize = 10;
-
         for (int32 i = 0; i < SpawnsPerFrame; i++)
         {
             if (CurrentSpawnCount >= TargetObjectCount)
             {
-                bIsSpawning = false;
-                bIsRecording = true;
+                isSpawning = false;
+                isRecording = true;
                 Timer = 0.0f;
                 return;
             }
@@ -81,14 +83,14 @@ void APhysicsStressTest::Tick(float DeltaTime)
         return;
     }
 
-    //RECORDING DATA
-    if (!bIsRecording) return;
+    // RECORDING DATA 
+    if (!isRecording) return;
 
     Timer += DeltaTime;
 
     if (Timer >= MaxRecordingTime)
     {
-        bIsRecording = false;
+        isRecording = false;
         SaveData();
         return;
     }
@@ -99,12 +101,13 @@ void APhysicsStressTest::Tick(float DeltaTime)
     FPlatformMemoryStats MemStats = FPlatformMemory::GetStats();
     int32 TotalMemoryMB = MemStats.UsedPhysical / (1024 * 1024);
 
+    // Search for the Mesh Component 
     int32 ActiveCount = 0;
     for (AActor* Actor : SpawnedActors)
     {
         if (Actor)
         {
-            UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Actor->GetRootComponent());
+            UPrimitiveComponent* PrimComp = Actor->FindComponentByClass<UPrimitiveComponent>();
             if (PrimComp && PrimComp->IsAnyRigidBodyAwake())
             {
                 ActiveCount++;
@@ -121,6 +124,7 @@ void APhysicsStressTest::Tick(float DeltaTime)
 void APhysicsStressTest::SaveData()
 {
     FString FilePath = FPaths::ProjectSavedDir() + "Logs/" + FileName;
-    FFileHelper::SaveStringToFile(CSVContent, *FilePath);
-    UE_LOG(LogTemp, Warning, TEXT("Test Complete. Data saved to: %s"), *FilePath);
+    FFileHelper::SaveStringToFile(CSVContent, *FilePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
+
+    UE_LOG(LogTemp, Warning, TEXT("Test Complete. Data APPENDED to: %s"), *FilePath);
 }

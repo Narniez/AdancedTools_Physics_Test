@@ -106,7 +106,6 @@ public class PhysicsStressTest : MonoBehaviour
 
         timer += Time.deltaTime;
 
-        // Auto-stop feature: Stop after 20 seconds
         if (timer >= maxRecordingTime)
         {
             isRecording = false;
@@ -135,8 +134,6 @@ public class PhysicsStressTest : MonoBehaviour
 
         // Added activeCount to the CSV line
         string line = $"{timer:F2},{currentTargetCount},{fps:F1},{physicsTimeMS:F4},{memoryMB},{activeCount}\n";
-
-        // Append to file immediately (safer for crashes)
         string filePath = Path.Combine(Application.dataPath, "..", fileName);
         File.AppendAllText(filePath, line);
     }

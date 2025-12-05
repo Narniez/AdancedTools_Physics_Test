@@ -35,7 +35,7 @@ public:
     FString FileName = "UnrealPhysicsData.csv";
 
     UPROPERTY(EditAnywhere, Category = "Stress Test")
-    float MaxRecordingTime = 20.0f;
+    float MaxRecordingTime = 30.0f;
 
     UFUNCTION(BlueprintCallable, Category = "Stress Test")
     void StartTest(int32 NewCount);
@@ -43,9 +43,8 @@ public:
 private:
     void SaveData();
 
-    // Internal State
-    bool bIsSpawning = false;
-    bool bIsRecording = false;
+    bool isSpawning = false;
+    bool isRecording = false;
     float Timer = 0.0f;
     int32 CurrentSpawnCount = 0;
     FString CSVContent;
