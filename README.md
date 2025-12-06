@@ -1,77 +1,106 @@
 # Advanced Tools – Physics Performance Comparison (Unity vs Unreal Engine)
 
-##  Introduction
-This project investigates the **physics simulation performance** between **Unity (PhysX)** and **Unreal Engine (Chaos)**.  
-The experiment measures how each engine handles increasing numbers of physics-enabled cubes under identical test conditions.
+## Introduction
+This project compares the **physics simulation performance** of **Unity 6.2 (PhysX)** and **Unreal Engine 5.7 (Chaos)**.  
+The test evaluates how each engine handles an increasing number of physics-enabled cubes under identical test conditions.
 
-The comparison focuses on:
-- Frame time and scaling performance  
-- Memory usage  
-- Physics stability (time until all objects become inactive)  
-
-This project was developed for the *Advanced Tools* university module.
+The goals were to measure:
+- Average **Frame Time (ms)** and scalability with object count  
+- **Memory usage** during the simulation  
+- **Stability**, represented by how long it takes for all objects to stop simulating physics  
 
 ---
 
-## ⚙️ How It Works
+## Test Setup
 
-### Test Setup
-- 3D cubes (1×1×1) spawned in a 10×N grid.
-- Gravity enabled; no external forces applied.
-- Friction = 0.6, Restitution = 0.0, Mass = 1.0 kg.
-- Simulation recorded for **30 seconds**.
+Both Unity and Unreal scenes were built to be **functionally identical** for a fair comparison:
 
+- A **100×100 cube** was used as the floor.  
+- A **camera** was positioned to view the spawned cubes.  
+- A simple **UI** was included with:
+- An input field to specify the number of cubes to spawn.  
+- A "Spawn" button to initiate the stress test.  
+
+Each test spawned between **500 and 10,000 cubes** arranged in a 10×N grid, spaced evenly apart.
+
+Physics properties were matched as closely as possible:
+| Property | Value |
+|:--|:--|
+| Mass | 1.0 kg |
+| Friction | 0.6 |
+| Restitution (Bounciness) | 0.0 |
+| Gravity | Enabled (default in both engines) |
+
+Simulations ran for **30 seconds**, with data logged every frame.
+
+### Recorded Metrics
 | Metric | Description |
 |:--|:--|
-| **FrameTime(ms)** | Time per rendered frame |
-| **FPS** | 1 / ΔTime |
-| **TotalMemory(MB)** | Current physical memory used |
-| **ActiveObjects** | Rigidbodies still simulating physics |
+| **FrameTime (ms)** | Time taken to render a single frame |
+| **FPS** | Frames per second (1 / ΔTime) |
+| **TotalMemory (MB)** | Physical memory used |
+| **ActiveObjects** | Rigidbodies still awake and simulating physics |
 
 ---
 
-### Unity Implementation
-- Implemented in `PhysicsStressTest.cs`  
-- Used `ProfilerRecorder` for Physics Time and Memory.  
-- Spawned 20 cubes per frame via coroutine.  
-- Data logged each frame to `PhysicsData_Combined.csv`.
+## Scene Implementation
 
-### Unreal Implementation
-- Implemented in `PhysicsStressTest.cpp/.h`.  
-- Used Chaos physics with equivalent material and mass properties.  
-- Spawned 20 actors per frame (matching Unity).  
-- Recorded frame time, FPS, total memory, and active rigidbodies to `UnrealPhysicsData.csv`.
+### Unity (PhysX)
+- Script: `PhysicsStressTest.cs`  
+- Used `ProfilerRecorder` to track Physics Time and Total Memory.  
+- Spawned **20 cubes per frame** to avoid freezing.  
+- Logged all metrics to `PhysicsData_Combined.csv`.
+
+### Unreal (Chaos)
+- Script: `PhysicsStressTest.cpp/.h`  
+- Used `FPlatformMemory::GetStats()` and `UPrimitiveComponent::IsAnyRigidBodyAwake()`.  
+- Spawned **20 actors per frame** to match Unity’s behavior.  
+- Logged results to `UnrealPhysicsData.csv`.
 
 ---
 
 ## Results & Comparison
 
-###  Time Until Active Objects Reached Zero (Stability)
+### Time Until Active Objects Reached Zero (Stability)
 
-<div align="center">
+<p align="center">
+  <img src="charts/unreal_stability.png" width="800"/>
+  <br>
+  <em>Figure 1 – Unreal Engine: Time until all cubes stop simulating physics</em>
+</p>
 
-| Unreal Engine | Unity |
-|:--:|:--:|
-| <img src="charts/unreal_stability.png" width="420"/> | <img src="charts/unity_stability.png" width="420"/> |
+<p align="center">
+  <img src="charts/unity_stability.png" width="800"/>
+  <br>
+  <em>Figure 2 – Unity: Time until all cubes stop simulating physics</em>
+</p>
 
-</div>
+#### Analysis
+In **Unity**, cubes began to fall over and collapse even at 500 objects, causing the simulation to stabilize relatively quickly as energy dissipated through collisions.
 
-#### Key Observations
-- **Unity:** Stable up to 2000 cubes — beyond 5000, many remained active after 30s.  
-- **Unreal:** 500–1000 never reached full rest, but 2000 stabilized before 30s — due to Chaos’ non-linear sleep behavior.  
-- **Explanation:** In dense stacks, inter-object friction locks movement, causing faster collective rest. At low counts, individual cubes continue micro-motions indefinitely.
+In **Unreal**, due to Chaos Physics’ more realistic solver, cube towers remained upright for the **500** and **1000** cube tests.  
+These standing towers stayed stable for the entire 30-second window, preventing the active object count from reaching zero.  
+At **2000 cubes**, the increased pile density caused the towers to collapse, and the engine managed to sleep the cubes after some time. At **5000** and **10000** cubes
+the initial towers again collapsed, but because of the high amount of cubes, the engine did not manage to stabilize after the 30-second threshold.
+
+This demonstrates a key difference:
+> Unreal’s Chaos Physics emphasizes **physical realism and stability**, while Unity’s PhysX favors **simplified and more easily damped interactions**.
 
 ---
 
 ### Frame Time vs Object Count
 
-<div align="center">
+<p align="center">
+  <img src="charts/unreal_frametime.png" width="800"/>
+  <br>
+  <em>Figure 3 – Unreal Engine: Average frame time (ms) vs object count</em>
+</p>
 
-| Unreal Engine | Unity |
-|:--:|:--:|
-| <img src="charts/unreal_frametime.png" width="420"/> | <img src="charts/unity_frametime.png" width="420"/> |
-
-</div>
+<p align="center">
+  <img src="charts/unity_frametime.png" width="800"/>
+  <br>
+  <em>Figure 4 – Unity: Average frame time (ms) vs object count</em>
+</p>
 
 | Object Count | Unity FrameTime (ms) | Unreal FrameTime (ms) |
 |:--:|:--:|:--:|
@@ -82,20 +111,25 @@ This project was developed for the *Advanced Tools* university module.
 | 10000 | 23.95 | 314.24 |
 
 #### Analysis
-Unity’s PhysX scales linearly and remains performant up to 10,000 cubes.  
-Unreal’s Chaos shows exponential frame time growth due to its more complex constraint solver and higher simulation accuracy.
+<p> Unity’s <b>PhysX</b> maintains <b>near-linear scaling</b> and remains performant even with <b>10,000 cubes</b>.<br> This efficiency comes primarily from its optimized <b>broad-phase collision detection system</b>, which quickly eliminates objects that cannot possibly collide before performing more expensive narrow-phase checks.<br> According to Unity’s official documentation, the physics engine uses algorithms such as <i>sweep-and-prune</i> and <i>multi-box pruning</i> to handle large numbers of rigid bodies efficiently, minimizing CPU workload per object.<br> <a href="https://docs.unity3d.com/Manual/physics-optimization-cpu-broad-phase.html" target="_blank">Unity Manual – Physics Optimization: Broad Phase</a> </p> 
 
+<p> Unreal Engine 5.7’s <b>Chaos Physics</b> shows <b>exponential growth</b> in frame time as object count increases.<br> Chaos is a general-purpose physics system designed to simulate complex, high-fidelity interactions, including rigid bodies, collisions, constraints, and destruction.<br> As described in Epic Games’ documentation, it integrates these features into a unified solver that prioritizes <b>accuracy and flexibility</b> over raw performance.<br> This means that every simulated body participates fully in the constraint-solving and collision pipeline, which increases computation time as object counts grow.<br> <a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/physics-in-unreal-engine" target="_blank">Unreal Engine Documentation – Physics in Unreal Engine</a> </p> <hr> 
+<p> <b>In summary:</b><br> <b>PhysX</b> is optimized for <i>real-time gameplay performance</i> through efficient filtering and batching of physics operations.<br> <b>Chaos</b> emphasizes <i>simulation accuracy and completeness</i>, trading higher computational cost for more realistic physical behavior. </p>
 ---
 
-###  Memory Usage vs Object Count
+### Memory Usage vs Object Count
 
-<div align="center">
+<p align="center">
+  <img src="charts/unreal_memory.png" width="800"/>
+  <br>
+  <em>Figure 5 – Unreal Engine: Average memory usage (MB) vs object count</em>
+</p>
 
-| Unreal Engine | Unity |
-|:--:|:--:|
-| <img src="charts/unreal_memory.png" width="420"/> | <img src="charts/unity_memory.png" width="420"/> |
-
-</div>
+<p align="center">
+  <img src="charts/unity_memory.png" width="800"/>
+  <br>
+  <em>Figure 6 – Unity: Average memory usage (MB) vs object count</em>
+</p>
 
 | Object Count | Unity (MB) | Unreal (MB) |
 |:--:|:--:|:--:|
@@ -106,36 +140,38 @@ Unreal’s Chaos shows exponential frame time growth due to its more complex con
 | 10000 | 376 | 2029 |
 
 #### Analysis
-Unreal consumes **6–8× more memory** due to Chaos’ rigid body island data and UObject overhead.  
-Unity’s PhysX memory remains minimal and predictable.
+Unreal consumes **6–8× more memory** than Unity, even for small simulations.  
+This is largely due to:
+- Per-body UObject overhead  
+- Physics island data storage  
+- Reflection and garbage collection systems  
+
+Unity’s PhysX manages rigidbodies more compactly, explaining its much smaller footprint.
 
 ---
 
 ## Discussion
 
-The comparison shows a clear trade-off between **efficiency (Unity)** and **accuracy (Unreal)**.
+The results clearly highlight each engine’s priorities:
 
-- **Unity (PhysX):**
-  - Optimized for real-time gameplay.
-  - Predictable scaling and lower memory footprint.
-  - Faster sleep detection and simpler solver.
-- **Unreal (Chaos):**
-  - Prioritizes physical realism and stability.
-  - Higher CPU and memory cost.
-  - Dense stacks stabilize faster; small scenes jitter longer.
+| Unity (PhysX) | Unreal (Chaos) |
+|:--|:--|
+| Lightweight, efficient physics simulation | Physically realistic, stable simulation |
+| Predictable linear scaling | Non-linear scaling due to solver complexity |
+| Minimal memory overhead | Large memory footprint due to detailed state tracking |
+| Ideal for real-time gameplay | Ideal for cinematic or high-accuracy simulation |
+
+Unity’s engine optimizes for **speed and scalability**, while Unreal’s Chaos aims for **physical accuracy and realism**.
 
 ---
 
 ## Conclusion
 
-This experiment demonstrates how engine-level physics design impacts scalability and stability.
+This experiment demonstrates how engine-level physics architecture shapes performance outcomes:
 
-**In short:**
-> Unity = Lightweight, fast, game-focused.  
-> Unreal = Accurate, detailed, simulation-focused.
+- **Unity** delivers higher FPS and lower memory usage, ideal for interactive games and rapid simulation.  
+- **Unreal** provides more accurate and stable results, particularly at higher object densities, but with significantly higher computational cost.  
 
-Both engines perform well *within their intended design goals* — Unity for real-time interaction and Unreal for cinematic or high-fidelity simulations.
-
----
-
-
+**In summary:**
+> Unity excels in efficiency.  
+> Unreal excels in realism.
