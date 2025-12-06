@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using TMPro;
@@ -12,13 +11,13 @@ public class PhysicsStressTest : MonoBehaviour
     public GameObject objectToSpawn;
     public TMP_InputField countInputField;
     public Button spawnButton;
-
-    [Header("Settings")]
     public string fileName = "PhysicsData_Combined.csv";
-    public int rowSize = 10;
+
+    [Header("Spawn Settings")]
+    public int columnNumber = 10;
     public float spacing = 1.5f;
-    [Tooltip("Stop recording after this many seconds to prevent infinite data")]
-    public float maxRecordingTime = 20.0f;
+    public float maxRecordingTime = 30.0f;
+    public int spawnsPerFrame = 20;
 
     // Profilers
     private ProfilerRecorder physicsTimeRecorder;
@@ -26,8 +25,11 @@ public class PhysicsStressTest : MonoBehaviour
 
     private List<GameObject> activeObjects = new List<GameObject>();
     private bool isRecording = false;
+    private bool isSpawning = false;
     private float timer = 0f;
+
     private int currentTargetCount = 0;
+    private int currentSpawnCount = 0;
 
     void OnEnable()
     {
@@ -49,59 +51,64 @@ public class PhysicsStressTest : MonoBehaviour
         string filePath = Path.Combine(Application.dataPath, "..", fileName);
         if (!File.Exists(filePath))
         {
-            File.WriteAllText(filePath, "Time,ObjectCount,FPS,PhysicsTime(ms),TotalMemory(MB),ActiveObjects\n");
+            File.WriteAllText(filePath, "Time,ObjectCount,FPS,FrameTime(ms),PhysicsTime(ms),TotalMemory(MB),ActiveObjects\n");
         }
     }
 
     public void OnStartTestClicked()
     {
-        foreach (var obj in activeObjects) Destroy(obj);
+        // Cleanup previous run
+        foreach (var obj in activeObjects) if (obj != null) Destroy(obj);
         activeObjects.Clear();
 
+        // Parse target count
         if (int.TryParse(countInputField.text, out int count))
         {
-            currentTargetCount = count;
-            StartCoroutine(SpawnRoutine(count));
+            currentTargetCount = Mathf.Max(0, count);
         }
-    }
-
-    IEnumerator SpawnRoutine(int count)
-    {
-        isRecording = false; 
-        yield return new WaitForSeconds(0.5f);
-
-        int spawned = 0;
-
-        while (spawned < count)
+        else
         {
-            // Spawn 20 per frame to avoid freezing
-            for (int i = 0; i < 20; i++)
-            {
-                if (spawned >= count) break;
-
-                Vector3 pos = new Vector3(
-                    (spawned % rowSize) * spacing,
-                    (spawned / rowSize) * spacing + 5f,
-                    0
-                );
-
-                // Add noise to prevent stacking sleep
-                pos.x += Random.Range(-0.1f, 0.1f);
-
-                GameObject newObj = Instantiate(objectToSpawn, pos, Quaternion.identity);
-                activeObjects.Add(newObj);
-                spawned++;
-            }
-            yield return null;
+            currentTargetCount = 0;
         }
 
-        Debug.Log($"Spawned {count} objects. Starting recording...");
+        // Reset for new run
+        currentSpawnCount = 0;
         timer = 0f;
+        isSpawning = currentTargetCount > 0;
         isRecording = true;
+
+        Debug.Log($"Starting Test with {currentTargetCount} objects...");
     }
 
     void Update()
     {
+        //Spawning logic
+        if (isSpawning)
+        {
+            int toSpawnThisFrame = Mathf.Min(spawnsPerFrame, currentTargetCount - currentSpawnCount);
+            for (int i = 0; i < toSpawnThisFrame; i++)
+            {
+                int spawnedIndex = currentSpawnCount + i;
+
+                Vector3 pos = new Vector3(
+                    (spawnedIndex % columnNumber) * spacing,
+                    (spawnedIndex / columnNumber) * spacing + 5f,
+                    0f
+                );
+
+                GameObject newObj = Instantiate(objectToSpawn, pos, Quaternion.identity);
+                activeObjects.Add(newObj);
+            }
+
+            currentSpawnCount += toSpawnThisFrame;
+
+            if (currentSpawnCount >= currentTargetCount)
+            {
+                isSpawning = false;
+                Debug.Log($"Spawned {currentTargetCount} objects. Starting recording...");
+            }
+        }
+
         if (!isRecording) return;
 
         timer += Time.deltaTime;
@@ -115,25 +122,25 @@ public class PhysicsStressTest : MonoBehaviour
 
         // Record data every frame
         double physicsTimeMS = physicsTimeRecorder.LastValue * (1e-6);
+        float frameTimeMS = Time.deltaTime * 1000.0f;
         long memoryMB = totalMemoryRecorder.LastValue / (1024 * 1024);
-        float fps = 1.0f / Time.deltaTime;
+
+        float fps = 1.0f / Mathf.Max(Time.deltaTime, 1e-6f);
 
         int activeCount = 0;
-        foreach (var obj in activeObjects)
+        for (int i = 0; i < activeObjects.Count; i++)
         {
-            if (obj != null)
+            var obj = activeObjects[i];
+            if (obj == null) continue;
+
+            Rigidbody rb = obj.GetComponent<Rigidbody>();
+            if (rb != null && !rb.IsSleeping())
             {
-                Rigidbody rb = obj.GetComponent<Rigidbody>();
-                // If RigidBody is NOT sleeping, it is calculating physics
-                if (rb != null && !rb.IsSleeping())
-                {
-                    activeCount++;
-                }
+                activeCount++;
             }
         }
 
-        // Added activeCount to the CSV line
-        string line = $"{timer:F2},{currentTargetCount},{fps:F1},{physicsTimeMS:F4},{memoryMB},{activeCount}\n";
+        string line = $"{timer:F2},{currentTargetCount},{fps:F1},{frameTimeMS:F4},{physicsTimeMS:F4},{memoryMB},{activeCount}\n";
         string filePath = Path.Combine(Application.dataPath, "..", fileName);
         File.AppendAllText(filePath, line);
     }

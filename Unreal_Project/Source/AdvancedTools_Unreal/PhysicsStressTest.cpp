@@ -17,9 +17,9 @@ void APhysicsStressTest::BeginPlay()
     GEngine->Exec(GetWorld(), TEXT("r.VSync 0"));
     Super::BeginPlay();
 
-    FString FilePath = FPaths::ProjectSavedDir() + "Logs/" + FileName;
+    FString FilePath = FPaths::ProjectSavedDir() + "Logs/" + fileName;
 
-    // Only write the Header if the file DOES NOT exist yet
+    // Only write the Header if the file doesnt exist yet
     if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*FilePath))
     {
         FString Header = "Time,ObjectCount,FPS,FrameTime(ms),TotalMemory(MB),ActiveObjects\n";
@@ -27,68 +27,63 @@ void APhysicsStressTest::BeginPlay()
     }
 }
 
-void APhysicsStressTest::StartTest(int32 NewCount)
+void APhysicsStressTest::StartTest(int NewCount)
 {
-    TargetObjectCount = NewCount;
+    targetObjectCount = NewCount;
 
-    for (AActor* Actor : SpawnedActors)
+    for (AActor* Actor : spawnedActors)
     {
         if (Actor) Actor->Destroy();
     }
-    SpawnedActors.Empty();
+    spawnedActors.Empty();
 
     CSVContent.Empty();
 
-    CurrentSpawnCount = 0;
+    currentSpawnCount = 0;
     isSpawning = true;
-    isRecording = false;
+    isRecording = true;
     Timer = 0.0f;
 
-    UE_LOG(LogTemp, Warning, TEXT("Starting Test with %d Objects..."), TargetObjectCount);
+    UE_LOG(LogTemp, Warning, TEXT("Starting Test with %d Objects..."), targetObjectCount);
 }
 
 void APhysicsStressTest::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    // SPAWNING
+    //Spawning logic
     if (isSpawning)
     {
-        int32 RowSize = 10;
-        for (int32 i = 0; i < SpawnsPerFrame; i++)
+		//Spawn a set number of objects per frame to avoid engine freeze
+        for (int i = 0; i < spawnsPerFrame && currentSpawnCount < targetObjectCount; i++)
         {
-            if (CurrentSpawnCount >= TargetObjectCount)
-            {
-                isSpawning = false;
-                isRecording = true;
-                Timer = 0.0f;
-                return;
-            }
-
-            float X = (CurrentSpawnCount % RowSize) * Spacing;
+            float X = (currentSpawnCount % columnNumber) * spacing;
             float Y = 0.0f;
-            float Z = 500.0f + ((CurrentSpawnCount / RowSize) * Spacing);
-            X += FMath::RandRange(-10.0f, 10.0f);
+            float Z = 500.0f + ((currentSpawnCount / columnNumber) * spacing);
 
             FVector SpawnLocation(X, Y, Z);
             FRotator SpawnRotation = FRotator::ZeroRotator;
 
-            AActor* NewActor = GetWorld()->SpawnActor<AActor>(ObjectToSpawn, SpawnLocation, SpawnRotation);
+            AActor* NewActor = GetWorld()->SpawnActor<AActor>(objectToSpawn, SpawnLocation, SpawnRotation);
             if (NewActor)
             {
-                SpawnedActors.Add(NewActor);
+                spawnedActors.Add(NewActor);
             }
-            CurrentSpawnCount++;
+            currentSpawnCount++;
         }
-        return;
+
+        if (currentSpawnCount >= targetObjectCount)
+        {
+            isSpawning = false;
+        }
     }
 
-    // RECORDING DATA 
     if (!isRecording) return;
 
+    // RECORDING DATA 
     Timer += DeltaTime;
 
-    if (Timer >= MaxRecordingTime)
+    if (Timer >= maxRecordingTime)
     {
         isRecording = false;
         SaveData();
@@ -99,11 +94,13 @@ void APhysicsStressTest::Tick(float DeltaTime)
     float FrameTimeMS = DeltaTime * 1000.0f;
 
     FPlatformMemoryStats MemStats = FPlatformMemory::GetStats();
-    int32 TotalMemoryMB = MemStats.UsedPhysical / (1024 * 1024);
 
-    // Search for the Mesh Component 
-    int32 ActiveCount = 0;
-    for (AActor* Actor : SpawnedActors)
+    //convert to MB
+    int TotalMemoryMB = MemStats.UsedPhysical / (1024 * 1024);
+
+    // Search for the Cube Mesh Component 
+    int ActiveCount = 0;
+    for (AActor* Actor : spawnedActors)
     {
         if (Actor)
         {
@@ -116,14 +113,14 @@ void APhysicsStressTest::Tick(float DeltaTime)
     }
 
     FString Line = FString::Printf(TEXT("%.2f,%d,%.1f,%.4f,%d,%d\n"),
-        Timer, TargetObjectCount, FPS, FrameTimeMS, TotalMemoryMB, ActiveCount);
+        Timer, targetObjectCount, FPS, FrameTimeMS, TotalMemoryMB, ActiveCount);
 
     CSVContent += Line;
 }
 
 void APhysicsStressTest::SaveData()
 {
-    FString FilePath = FPaths::ProjectSavedDir() + "Logs/" + FileName;
+    FString FilePath = FPaths::ProjectSavedDir() + "Logs/" + fileName;
     FFileHelper::SaveStringToFile(CSVContent, *FilePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
 
     UE_LOG(LogTemp, Warning, TEXT("Test Complete. Data APPENDED to: %s"), *FilePath);
