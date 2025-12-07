@@ -83,6 +83,8 @@ These standing towers stayed stable for the entire 30-second window, preventing 
 At **2000 cubes**, the increased pile density caused the towers to collapse, and the engine managed to sleep the cubes after some time. At **5000** and **10000** cubes
 the initial towers again collapsed, but because of the high amount of cubes, the engine did not manage to stabilize after the 30-second threshold.
 
+<h4> Visual Comparison – Cube Behavior in Unreal vs Unity</h4> <p> The following screenshots illustrate the visual difference between the two simulations. In <b>Unreal Engine</b>, the cubes form tall, stable <b>towers</b> that remain upright throughout the simulation, preventing the active object count from reaching zero. In contrast, <b>Unity</b> cubes quickly collapse into piles, losing kinetic energy faster and allowing the simulation to stabilize much earlier. </p> <table align="center"> <tr> <td align="center"> <img src="charts/unreal_500_towers.png" width="400"/><br> <em>Figure 1a – Unreal Engine (500 cubes): Stable towers remain upright.</em> </td> <td align="center"> <img src="charts/unity_500_cubes.png" width="400"/><br> <em>Figure 1b – Unity (500 cubes): Cubes collapse into a pile.</em> </td> </tr> <tr> <td align="center"> <img src="charts/unreal_1000_towers.png" width="400"/><br> <em>Figure 2a – Unreal Engine (1000 cubes): Tall towers remain stable.</em> </td> <td align="center"> <img src="charts/unity_1000_cubes.png" width="400"/><br> <em>Figure 2b – Unity (1000 cubes): Pile forms and stabilizes quickly.</em> </td> </tr> </table> <p> These visual results directly support the data shown above — where <b>Unreal’s</b> active object count failed to reach zero for 500 and 1000 cubes, while <b>Unity’s</b> simulations quickly stabilized due to simpler collision resolution. </p>
+
 This demonstrates a key difference:
 > Unreal’s Chaos Physics emphasizes **physical realism and stability**, while Unity’s PhysX favors **simplified and more easily damped interactions**.
 
@@ -171,7 +173,5 @@ This experiment demonstrates how engine-level physics architecture shapes perfor
 
 - **Unity** delivers higher FPS and lower memory usage, ideal for interactive games and rapid simulation.  
 - **Unreal** provides more accurate and stable results, particularly at higher object densities, but with significantly higher computational cost.  
-
-**In summary:**
-> Unity excels in efficiency.  
-> Unreal excels in realism.
+ Unity excels in efficiency.  
+ Unreal excels in realism.
