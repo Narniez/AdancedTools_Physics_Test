@@ -42,18 +42,18 @@ Simulations ran for **30 seconds**, with data logged every frame.
 
 ---
 
-## Scene Implementation
+## Implementation
 
 ### Unity (PhysX)
 - Script: `PhysicsStressTest.cs`  
-- Used `ProfilerRecorder` to track Physics Time and Total Memory.  
-- Spawned **20 cubes per frame** to avoid freezing.  
-- Logged all metrics to `PhysicsData_Combined.csv`.
+- Used `ProfilerRecorder` to track data.  
+- Spawned **20 cubes per frame**.  
+- Logged results to `PhysicsData_Combined.csv`.
 
 ### Unreal (Chaos)
 - Script: `PhysicsStressTest.cpp/.h`  
-- Used `FPlatformMemory::GetStats()` and `UPrimitiveComponent::IsAnyRigidBodyAwake()`.  
-- Spawned **20 actors per frame** to match Unity’s behavior.  
+- Used `FPlatformMemory::GetStats()` and Unreal Insights to track data.  
+- Spawned **20 cubes per frame**.  
 - Logged results to `UnrealPhysicsData.csv`.
 
 ---
@@ -84,8 +84,9 @@ Unity’s PhysX implementation tends to resolve stacking instability more aggres
 In Unreal Engine, the Chaos physics solver maintains more accurate constraint and contact resolution. 
 For tests with 500 and 1000 cubes, stable towers remained upright for the entire 30-second duration, preventing the active object count from reaching zero. 
 At 2000 cubes, the increased pile density caused the towers to collapse and the engine managed to stabilize after some time. 
-For 5000 and 10000 cubes, the towers again collapsed; however, due to the high number of objects and the resulting complex interactions, the engine was 
+For 5000 and 10000 cubes, the towers again collapsed, however, due to the high number of objects and the resulting interactions, both engines were 
 unable to fully stabilize within the 30-second test window.
+  
 This reflects Chaos Physics’ emphasis on stability and realism, even when it results in longer simulation activity.
 <br><a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/physics-in-unreal-engine" target="_blank">Unreal Engine Documentation – Physics (Chaos)</a>
 </p>
@@ -110,13 +111,13 @@ Unreal’s Chaos Physics emphasizes **physical realism and stability**, while Un
 ### Frame Time vs Object Count
 
 <p align="center">
-  <img src="charts/unreal_frametime1.png" width="800"/>
+  <img src="charts/unreal_frametime2.png" width="800"/>
   <br>
   <em>Figure 3 – Unreal Engine: Average frame time (ms) vs object count</em>
 </p>
 
 <p align="center">
-  <img src="charts/unity_frametime1.png" width="800"/>
+  <img src="charts/unity_frametime2.png" width="800"/>
   <br>
   <em>Figure 4 – Unity: Average frame time (ms) vs object count</em>
 </p>
@@ -140,25 +141,36 @@ The result is consistent frame times and minimal CPU overhead per object.
 
 <p>
 Unreal Engine’s Chaos Physics shows a steeper increase in frame time as object count rises. 
-Chaos provides a unified, high-fidelity simulation system for rigid bodies, collisions, and constraints, which trades performance for realism and stability. 
+Chaos provides a unified, high-fidelity simulation system for rigid bodies, collisions, and constraints, which may lower performance for realism and stability. 
 Every body participates fully in constraint solving and contact management, leading to higher computational cost with large numbers of objects.
 <br><a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/physics-in-unreal-engine" target="_blank">Unreal Engine Documentation – Physics (Chaos)</a>
 </p>
 
+
+<p align="center">
+  <img src="charts/unreal_insights_frametime.png" width="800"/>
+  <br>
+  <em>Figure 5 – Unreal Insights trace showing CPU time distribution during the 5000-object test</em>
+</p>
+
 <p>
-Overall, Unity favors performance-optimized batching, while Unreal prioritizes more physically accurate interactions.
+The Unreal Insights trace above confirms that the majority of frame time is spent in <b>Chaos physics functions</b> such as 
+<code>FPBDRigidsEvolutionGBF::AdvanceOneTimeStep</code>, <code>Collisions::GenerateCollisions</code>, and 
+<code>Chaos::SolveConstraints</code>. These functions together account for most of the frame time in the slowest frames, 
+indicating that <b>physics collision generation and constraint resolution dominate the CPU workload</b> at higher object counts. 
+This explains the steep rise in frame time observed in Unreal compared to Unity’s more optimized PhysX implementation.
 </p>
 
 ### Memory Usage vs Object Count
 
 <p align="center">
-  <img src="charts/unreal_memory1.png" width="800"/>
+  <img src="charts/unreal_memory2.png" width="800"/>
   <br>
   <em>Figure 5 – Unreal Engine: Average memory usage (MB) vs object count</em>
 </p>
 
 <p align="center">
-  <img src="charts/unity_memory1.png" width="800"/>
+  <img src="charts/unity_memory2.png" width="800"/>
   <br>
   <em>Figure 6 – Unity: Average memory usage (MB) vs object count</em>
 </p>
@@ -173,22 +185,11 @@ Overall, Unity favors performance-optimized batching, while Unreal prioritizes m
 
 #### Analysis
 <p>
-Unreal Engine consumes <b>6–8× more memory</b> than Unity in these tests. A major factor is how Unreal represents and manages simulation objects:
+Unreal Engine consistently consumes <b>6–8× more memory</b> than Unity across all tests. This difference is expected, as Unreal is a much heavier engine overall.The official hardware specifications recommend <b>32&nbsp;GB of RAM</b> for Unreal Engine&nbsp;5, compared to Unity&nbsp;6’s <b>8–16&nbsp;GB</b> requirement, reflecting the higher memory cost of Unreal’s subsystems. <br> 
+  <a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/hardware-and-software-specifications-for-unreal-engine" target="_blank">Unreal Engine Hardware Requirements</a> • <a href="https://docs.unity3d.com/6000.3/Documentation/Manual/system-requirements.html" target="_blank">Unity 6 System Requirements</a> 
 </p>
 
-<ul>
-  <li><b>UObject overhead:</b> Each simulated actor/component in Unreal derives from the <code>UObject</code> system, which carries metadata for editor/engine features and is tracked by Unreal’s garbage collector. This adds per-object memory beyond the pure physics state.<br>
-  <a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-object-handling-in-unreal-engine#garbagecollection" target="_blank">Unreal Object Handling – Garbage Collection</a></li>
-
-  <li><b>Collision/constraint data in Chaos:</b> Chaos (UE 5.7) is a general physics system that handles rigid bodies, collisions, and constraints with a full feature set. Managing contacts and constraints between many bodies increases memory usage with object count.<br>
-  <a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/physics-in-unreal-engine" target="_blank">Physics in Unreal Engine (Chaos)</a> •
-  <a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/collision-in-unreal-engine---overview" target="_blank">Collision Overview</a></li>
-</ul>
-
-<p>
-By contrast, Unity’s physics runs inside the engine’s native C/C++ core (PhysX integration) with a smaller per-object footprint exposed to C# scripts, which helps keep overall memory lower in large rigidbody scenes.<br>
-<a href="https://docs.unity.cn/6000.0/Documentation/Manual/performance-native-memory.html" target="_blank">Unity Manual – Native memory (C/C++ engine core)</a> •
-<a href="https://docs.unity3d.com/Manual/PhysicsSection.html" target="_blank">Unity Manual – Physics (PhysX integration)</a>
+<p> When looking at how memory scales with object count, Unreal actually shows a more stable percentage increase than Unity. Between 500 and 10,000 objects, Unreal’s memory usage increased by roughly <b>+22.8%</b>, while Unity’s rose by <b>+47.6%</b>. This indicates that although Unreal starts with a larger baseline, its per-object memory growth is more efficient, suggesting it's well-optimized managing large numbers of physics bodies. Unity’s lower starting point results in a smaller absolute footprint, but its relative increase is steeper as more objects are introduced. 
 </p>
 
 ---
