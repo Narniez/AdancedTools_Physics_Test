@@ -21,7 +21,7 @@ Both Unity and Unreal scenes were built to be **functionally identical** for a f
   - An input field to specify the number of cubes to spawn.  
   - A "Spawn" button to initiate the stress test.  
 
-Each test spawned between **500 and 10,000 cubes** arranged in a 10×N grid, spaced evenly apart.
+Each test spawned between **500 and 10,000 cubes** arranged in a 10×N grid(where N = ObjectCount/10), spaced evenly apart.
 
 Physics properties were matched as closely as possible:
 | Property | Value |
@@ -69,7 +69,7 @@ Simulations ran for **30 seconds**, with data logged every frame.
 </p>
 
 <p align="center">
-  <img src="charts/unity_stability1.png" width="800"/>
+  <img src="charts/unity_stability2.png" width="800"/>
   <br>
   <em>Figure 2 – Unity: Time until all cubes stop simulating physics</em>
 </p>
@@ -166,13 +166,13 @@ This explains the steep rise in frame time observed in Unreal compared to Unity�
 <p align="center">
   <img src="charts/unreal_memory2.png" width="800"/>
   <br>
-  <em>Figure 5 – Unreal Engine: Average memory usage (MB) vs object count</em>
+  <em>Figure 6 – Unreal Engine: Average memory usage (MB) vs object count</em>
 </p>
 
 <p align="center">
   <img src="charts/unity_memory2.png" width="800"/>
   <br>
-  <em>Figure 6 – Unity: Average memory usage (MB) vs object count</em>
+  <em>Figure 7 – Unity: Average memory usage (MB) vs object count</em>
 </p>
 
 | Object Count | Unity (MB) | Unreal (MB) |
@@ -189,7 +189,7 @@ Unreal Engine consistently consumes <b>6–8× more memory</b> than Unity across
   <a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/hardware-and-software-specifications-for-unreal-engine" target="_blank">Unreal Engine Hardware Requirements</a> • <a href="https://docs.unity3d.com/6000.3/Documentation/Manual/system-requirements.html" target="_blank">Unity 6 System Requirements</a> 
 </p>
 
-<p> When looking at how memory scales with object count, Unreal actually shows a more stable percentage increase than Unity. Between 500 and 10,000 objects, Unreal’s memory usage increased by roughly <b>+22.8%</b>, while Unity’s rose by <b>+47.6%</b>. This indicates that although Unreal starts with a larger baseline, its per-object memory growth is more efficient, suggesting it's well-optimized managing large numbers of physics bodies. Unity’s lower starting point results in a smaller absolute footprint, but its relative increase is steeper as more objects are introduced. 
+<p> When looking at how memory scales with object count, Unreal actually shows a more stable percentage increase than Unity. Between 500 and 10,000 objects, Unreal’s memory usage increased by roughly <b>+22.8%</b>, while Unity’s rose by <b>+47.6%</b>. This indicates that although Unreal starts with a larger baseline, its per-object memory growth is more efficient, suggesting it's well-optimized for managing large numbers of physics bodies. Unity’s lower starting point results in a smaller absolute footprint, but its relative increase is steeper as more objects are introduced. 
 </p>
 
 ---
