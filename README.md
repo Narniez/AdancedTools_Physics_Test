@@ -141,7 +141,7 @@ The result is consistent frame times and minimal CPU overhead per object.
 
 <p>
 Unreal Engine’s Chaos Physics shows a steeper increase in frame time as object count rises. 
-Chaos provides a unified, high-fidelity simulation system for rigid bodies, collisions, and constraints, which may lower performance for realism and stability. 
+Chaos provides a unified, simulation system for rigid bodies, collisions, and constraints, which may lower performance for realism and stability. 
 Every body participates fully in constraint solving and contact management, leading to higher computational cost with large numbers of objects.
 <br><a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/physics-in-unreal-engine" target="_blank">Unreal Engine Documentation – Physics (Chaos)</a>
 </p>
